@@ -9,6 +9,12 @@
 #include "opencv2/video/tracking.hpp"
 
 const std::string windowName = "KalmanFilter";
+cv::Mat image;
+
+bool enableBackProjection = false;
+bool selectObject = false;
+
+
 
 struct MousePosition
 {
