@@ -8,25 +8,27 @@
 #include "opencv2/highgui/highgui.hpp"
 #include "opencv2/video/tracking.hpp"
 
-const std::string windowName = "KalmanFilter";
+const std::string windowName = "ObjectTracker v0.1";
 
-struct MousePosition
-{
-    int x;
-    int y;
-};
+//Is the user selecting a region
+bool isSelectingRegion = false;
+
+//Should we be tracking an object?
+//TODO
+int trackObject = 0;
+
+//Region representation
+cv::Rect regionOfInterest;
+
+//Location of where the mouse was clicked
+cv::Point mouseClickOrigin;
+
+//Container to hold the image
+cv::Mat frame;
 
 
-void callbackFunction(int event, int x, int y, int flags, void* userdata)
-{
-    MousePosition* posPtr = (MousePosition*)userdata;
-    if ( event == cv::EVENT_MOUSEMOVE )
-    {
-        posPtr->x = x;
-        posPtr->y = y;
-    }
-}
-
+//Mouse callback function
+static void onMouse(int event, int x, int y, int flags, void* userdata);
 
 int main(int argc, char** argv)
 {
@@ -118,4 +120,37 @@ int main(int argc, char** argv)
      }
 
      return 0;
+}
+
+static void onMouse(int event, int x, int y, int flags, void* userdata)
+{
+    if(isSelectingRegion)
+    {
+        regionOfInterest.x = std::MIN(x, mouseClickOrigin.x);
+        regionOfInterest.y = std::MIN(y, mouseClickOrigin.y);
+        regionOfInterest.width = std::abs(x - mouseClickOrigin.x);
+        regionOfInterest.height = std::abs(y - mouseClickOrigin.y);
+
+        regionOfInterest &= cv::Rect(0, 0, frame.cols, frame.rows);
+
+    }
+    switch(event)
+    {
+        case(cv::EVENT_LBUTTONDOWN):
+        {
+            mouseClickOrigin = cv::Point(x, y);
+            regionOfInterest = cv::Rect(x, y, 0, 0);
+            isSelectingRegion = true;
+            break;
+        }
+        case(cv::EVENT_LBUTTONUP):
+        {
+            isSelectingRegion = false;
+            if(regionOfInterest.width > 0 && regionOfInterest.height > 0)
+            {
+                shouldTrackObject = -1;
+            }
+            break;
+        }
+    }
 }
