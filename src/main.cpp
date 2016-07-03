@@ -18,7 +18,7 @@ bool programIsRunning = true;
 
 //Should we be tracking an object?
 //TODO
-int trackObject = 0;
+bool trackObject = false;
 
 //Region representation
 cv::Rect regionOfInterest;
@@ -27,7 +27,7 @@ cv::Rect regionOfInterest;
 cv::Point mouseClickOrigin;
 
 //Container to hold the image
-cv::Mat frame;
+cv::Mat image;
 
 
 
@@ -40,13 +40,51 @@ void handleWaitKey(char key);
 
 int main(int argc, char** argv)
 {
-    cv::Mat frame = cv::imread(argv[1]);
+    cv::VideoCapture cap(0);
+
+    if(argc > 1)
+    {
+        cv::VideoCapture pathCap(argv[1]);
+        cap = pathCap;
+    }
+    cv::Mat frame;
+
+    if(!cap.isOpened())
+    {
+        throw std::runtime_error("Could not open capture device");
+    }
 
     cv::namedWindow(windowName, CV_WINDOW_NORMAL);
+
+    //Register our on mouse even
+    cv::setMouseCallback(windowName, onMouse, nullptr);
     while(programIsRunning)
     {
-        cv::imshow(windowName, frame);
-        handleWaitKey(static_cast<char>(cv::waitKey(0)));
+        //Get a frame 
+        cap >> frame;
+        if(frame.empty())
+        {
+            std::cout << "ERROR: Could not read frame" << std::endl;
+            break;
+        }
+        frame.copyTo(image);
+        
+        if(trackObject)
+        {
+
+        }
+
+
+
+
+        if( isSelectingRegion && regionOfInterest.width > 0 && regionOfInterest.height > 0 )
+        {
+            cv::Mat roi(image, regionOfInterest);
+            bitwise_not(roi, roi);
+        }
+
+        cv::imshow(windowName, image);
+        handleWaitKey(static_cast<char>(cv::waitKey(10)));
     }
     return 0;
 }
@@ -60,7 +98,7 @@ static void onMouse(int event, int x, int y, int flags, void* userdata)
         regionOfInterest.width = std::abs(x - mouseClickOrigin.x);
         regionOfInterest.height = std::abs(y - mouseClickOrigin.y);
 
-        regionOfInterest &= cv::Rect(0, 0, frame.cols, frame.rows);
+        regionOfInterest &= cv::Rect(0, 0, image.cols, image.rows);
 
     }
     switch(event)
@@ -77,7 +115,7 @@ static void onMouse(int event, int x, int y, int flags, void* userdata)
             isSelectingRegion = false;
             if(regionOfInterest.width > 0 && regionOfInterest.height > 0)
             {
-                trackObject = -1;
+                trackObject = true;
             }
             break;
         }
@@ -101,6 +139,11 @@ void handleWaitKey(char key)
         case('Q'):
         {
             programIsRunning = false;
+            break;
+        }
+        case('r'):
+        {
+            trackObject = false;
             break;
         }
         default:
